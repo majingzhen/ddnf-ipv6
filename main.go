@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/tencentcloud/tencentcloud-sdk-go-intl-en/tencentcloud/common"
 	"github.com/tencentcloud/tencentcloud-sdk-go-intl-en/tencentcloud/common/profile"
 	dnspod "github.com/tencentcloud/tencentcloud-sdk-go-intl-en/tencentcloud/dnspod/v20210323"
@@ -15,6 +15,7 @@ import (
 	"ddns-ipv6/health"
 	"ddns-ipv6/iputil"
 	"ddns-ipv6/notification"
+	"ddns-ipv6/proxy"
 )
 
 func checkIPv6Connectivity() bool {
@@ -41,17 +42,23 @@ func main() {
 	healthCheck := health.NewHealthCheck()
 
 	// 读取配置文件
-	cfg, err := config.LoadConfig("config.yaml")
+	cfg, err := config.LoadConfig()
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		logrus.Fatalf("Failed to load config: %v", err)
 	}
 
-	if err := cfg.Validate(); err != nil {
-		log.Fatalf("Invalid configuration: %v", err)
+	// 判断是否需要启动 HTTP 反向代理
+	if cfg.Proxy.EnableHTTP {
+		go proxy.StartReverseProxy(cfg.Proxy.HTTPListenAddr, cfg.Proxy.HTTPTargetAddr)
+	}
+
+	// 判断是否需要启动 HTTPS 反向代理
+	if cfg.Proxy.EnableHTTPS {
+		go proxy.StartReverseProxyTLS(cfg.Proxy.HTTPSListenAddr, cfg.Proxy.HTTPSTargetAddr, cfg.Proxy.CertFile, cfg.Proxy.KeyFile)
 	}
 
 	// 创建腾讯云客户端
-	log.Println("Creating Tencent Cloud client...")
+	logrus.Println("Creating Tencent Cloud client...")
 	credential := common.NewCredential(
 		cfg.Tencent.SecretId,
 		cfg.Tencent.SecretKey,
@@ -59,27 +66,27 @@ func main() {
 	cpf := profile.NewClientProfile()
 	client, err := dnspod.NewClient(credential, "ap-guangzhou", cpf)
 	if err != nil {
-		log.Fatalf("Failed to create DNSPod client: %v", err)
+		logrus.Fatalf("Failed to create DNSPod client: %v", err)
 	}
-	log.Println("Tencent Cloud client created successfully.")
+	logrus.Println("Tencent Cloud client created successfully.")
 
-	log.Printf("Starting IPv6 DDNS service...")
+	logrus.Printf("Starting IPv6 DDNS service...")
 
 	// 检查IPv6连接
 	if !checkIPv6Connectivity() {
-		log.Println("IPv6 connectivity check failed, sending notification...")
+		logrus.Println("IPv6 connectivity check failed, sending notification...")
 		notification.SendNotification(cfg.Email,
 			"IPv6 DDNS 更新失败",
 			"无法连接到公共 IPv6 地址")
 	}
 	// 定期检查并更新IP
 	for {
-		log.Println("Checking local IPv6 address...")
+		logrus.Println("Checking local IPv6 address...")
 		ipv6, err := iputil.GetLocalIPv6()
 		if err != nil {
-			log.Printf("Failed to get IPv6 address: %v", err)
+			logrus.Printf("Failed to get IPv6 address: %v", err)
 			if healthCheck.RecordError() >= 3 {
-				log.Println("Error threshold reached, sending notification...")
+				logrus.Println("Error threshold reached, sending notification...")
 				notification.SendNotification(cfg.Email,
 					"IPv6 DDNS 更新失败",
 					fmt.Sprintf("获取IPv6地址失败: %v", err))
@@ -88,29 +95,29 @@ func main() {
 			continue
 		}
 
-		log.Printf("Local IPv6 address: %s", ipv6)
+		logrus.Printf("Local IPv6 address: %s", ipv6)
 
 		// 检查缓存，避免重复更新
 		cachedIP, _ := cache.GetIP()
 		if cachedIP == ipv6 {
-			log.Printf("IP未变化，跳过更新")
+			logrus.Printf("IP未变化，跳过更新")
 			time.Sleep(time.Duration(cfg.CheckInterval) * time.Second)
 			continue
 		}
 
-		log.Println("Updating DNS record...")
+		logrus.Println("Updating DNS record...")
 		// 使用重试机制更新DNS记录
 		err = dns.UpdateDNSRecordWithRetry(client, *cfg, ipv6)
 		if err != nil {
-			log.Printf("Failed to update DNS record: %v", err)
+			logrus.Printf("Failed to update DNS record: %v", err)
 			if healthCheck.RecordError() >= 3 {
-				log.Println("Error threshold reached, sending notification...")
+				logrus.Println("Error threshold reached, sending notification...")
 				notification.SendNotification(cfg.Email,
 					"IPv6 DDNS 更新失败",
 					fmt.Sprintf("更新DNS记录失败: %v", err))
 			}
 		} else {
-			log.Printf("Successfully updated DNS record: %s.%s -> %s",
+			logrus.Printf("Successfully updated DNS record: %s.%s -> %s",
 				cfg.Domain.SubDomain, cfg.Domain.Domain, ipv6)
 			cache.UpdateIP(ipv6)
 			healthCheck.RecordSuccess()

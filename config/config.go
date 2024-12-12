@@ -1,44 +1,57 @@
 package config
 
 import (
-	"io/ioutil"
+	"log"
 
-	"gopkg.in/yaml.v2"
+	"github.com/spf13/viper"
 )
 
 type Config struct {
 	Tencent struct {
-		SecretId  string `yaml:"secretId"`
-		SecretKey string `yaml:"secretKey"`
-	} `yaml:"tencent"`
+		SecretId  string
+		SecretKey string
+	}
 	Domain struct {
-		Domain    string `yaml:"domain"`
-		SubDomain string `yaml:"subDomain"`
-	} `yaml:"domain"`
-	CheckInterval int `yaml:"checkInterval"`
-	Email         struct {
-		SMTPServer string `yaml:"smtpServer"`
-		SMTPPort   int    `yaml:"smtpPort"`
-		Username   string `yaml:"username"`
-		Password   string `yaml:"password"`
-		Recipient  string `yaml:"recipient"`
-	} `yaml:"email"`
+		Domain string
+
+		SubDomain string
+	}
+	CheckInterval int
+	Email         Email
+	Proxy         struct {
+		EnableHTTP      bool
+		HTTPListenAddr  string
+		HTTPTargetAddr  string
+		EnableHTTPS     bool
+		HTTPSListenAddr string
+		HTTPSTargetAddr string
+		CertFile        string
+		KeyFile         string
+	}
 }
 
-func LoadConfig(filename string) (*Config, error) {
-	data, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, err
+type Email struct {
+	SMTPServer string
+	SMTPPort   int
+	Username   string
+	Password   string
+	Recipient  string
+}
+
+func LoadConfig() (*Config, error) {
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(".")
+
+	if err := viper.ReadInConfig(); err != nil {
+		log.Fatalf("Error reading config file, %s", err)
 	}
+
 	var cfg Config
-	err = yaml.Unmarshal(data, &cfg)
+	err := viper.Unmarshal(&cfg)
 	if err != nil {
-		return nil, err
+		log.Fatalf("Unable to decode into struct, %v", err)
 	}
-	return &cfg, nil
-}
 
-func (c *Config) Validate() error {
-	// Add validation logic if needed
-	return nil
+	return &cfg, nil
 }

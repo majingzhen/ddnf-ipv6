@@ -8,20 +8,20 @@ import (
 )
 
 // SendNotification 发送邮件通知
-func SendNotification(cfg config.EmailConfig, subject, body string) error {
-	auth := smtp.PlainAuth("", cfg.Username, cfg.Password, cfg.SMTPServer)
+func SendNotification(emailCfg config.Email, subject, body string) error {
+	auth := smtp.PlainAuth("", emailCfg.Username, emailCfg.Password, emailCfg.SMTPServer)
 
 	msg := fmt.Sprintf("From: %s\r\n"+
 		"To: %s\r\n"+
 		"Subject: %s\r\n"+
 		"\r\n"+
-		"%s\r\n", cfg.Username, cfg.ToEmail, subject, body)
+		"%s\r\n", emailCfg.Username, emailCfg.Recipient, subject, body)
 
 	err := smtp.SendMail(
-		fmt.Sprintf("%s:%d", cfg.SMTPServer, cfg.SMTPPort),
+		fmt.Sprintf("%s:%d", emailCfg.SMTPServer, emailCfg.SMTPPort),
 		auth,
-		cfg.Username,
-		[]string{cfg.ToEmail},
+		emailCfg.Username,
+		[]string{emailCfg.Recipient},
 		[]byte(msg),
 	)
 

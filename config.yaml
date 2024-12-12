@@ -1,12 +1,12 @@
 tencent:
-  secretId: "your-secret-id"
-  secretKey: "your-secret-key"
+  secretId: "xxxxxxxxxxxxxxx"
+  secretKey: "xxxxxxxxxxxxxxxxxx"
 
 domain:
-  domain: "example.com"
-  subDomain: "www"
+  domain: "xxxxx.com"
+  subDomain: "xxx"
 
-checkInterval: 60
+checkInterval: 600
 
 email:
   smtpServer: "smtp.example.com"
@@ -14,3 +14,14 @@ email:
   username: "your-email@example.com"
   password: "your-email-password"
   recipient: "recipient@example.com"
+
+proxy:
+  enableHTTP: true
+  httpListenAddr: ":80"
+  httpTargetAddr: "http://localhost:82"
+  
+  enableHTTPS: false
+  httpsListenAddr: ":443"
+  httpsTargetAddr: "http://localhost:8443"
+  certFile: "/path/to/cert.pem"
+  keyFile: "/path/to/key.pem"
