@@ -2,6 +2,6 @@ tencent:
   secret_id: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
   secret_key: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 domain:
-  domain: "majingzhen.com"
+  domain: "xxxxx.com"
   sub_domain: "nas"
 check_interval: 300
