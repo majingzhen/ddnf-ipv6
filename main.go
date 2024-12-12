@@ -65,13 +65,12 @@ func main() {
 
 	log.Printf("Starting IPv6 DDNS service...")
 
-	// 在 main 函数中添加连通性检查
+	// 检查IPv6连接
 	if !checkIPv6Connectivity() {
-		log.Println("警告: IPv6 连通性测试失败，请检查路由器 IPv6 设置")
-		// 可以发送邮件通知
-		//sendNotification(config.Email,
-		//	"IPv6 连通性测试失败",
-		//	"请检查路由器 IPv6 设置和防火墙配置")
+		log.Println("IPv6 connectivity check failed, sending notification...")
+		notification.SendNotification(cfg.Email,
+			"IPv6 DDNS 更新失败",
+			"无法连接到公共 IPv6 地址")
 	}
 	// 定期检查并更新IP
 	for {
@@ -119,5 +118,4 @@ func main() {
 
 		time.Sleep(time.Duration(cfg.CheckInterval) * time.Second)
 	}
-
 }

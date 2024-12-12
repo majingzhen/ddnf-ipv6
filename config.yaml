@@ -1,7 +1,16 @@
 tencent:
-  secret_id: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-  secret_key: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  secretId: "your-secret-id"
+  secretKey: "your-secret-key"
+
 domain:
-  domain: "xxxxx.com"
-  sub_domain: "nas"
-check_interval: 300
+  domain: "example.com"
+  subDomain: "www"
+
+checkInterval: 60
+
+email:
+  smtpServer: "smtp.example.com"
+  smtpPort: 587
+  username: "your-email@example.com"
+  password: "your-email-password"
+  recipient: "recipient@example.com"
